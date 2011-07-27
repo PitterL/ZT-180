@@ -1,0 +1,43 @@
+menu "SoC Audio for the INFOTM SOC"
+
+config SND_IMAPX_SOC
+	tristate "SoC Audio for the Infotm Imapx chips"
+	depends on ARCH_IMAP && SND_SOC
+	select SND_PCM
+	help
+	  Say Y or M if you want to add support for codecs attached to
+	  the AC97, I2S interface. You will also need
+	  to select the audio interfaces to support below.
+
+config AUDIO_CODEC_PROCFS
+    bool "Proc-FS interface for audio codec control"
+	depends on SND_IMAPX200_SOC_IMAPX200_WM8987 && PROC_FS
+	  default y
+ config SND_IMAPX200_SOC_AC97
+	tristate
+	select AC97_BUS
+	select SND_AC97_CODEC
+	select SND_SOC_AC97_BUS
+
+config SND_IMAPX200_SOC_IMAPX200_LM4550
+	tristate "SoC AC97 Audio support for IMAPX200 - LM4550"
+	depends on SND_IMAPX_SOC && (MACH_IMAPX200)
+	select SND_IMAPX200_SOC_AC97
+	select SND_SOC_LM4550
+	help
+	  Say Y if you want to add support for SoC audio on imapx200 
+	  with the LM4550.
+	
+config SND_IMAPX200_SOC_IMAPX200_WM8987
+	tristate "SoC I2S Audio support for IMAPX200 - WM8987"
+	depends on SND_IMAPX_SOC && (MACH_IMAPX200)
+	select SND_IMAPX200_SOC_I2S
+	select SND_SOC_WM8987
+	help
+	  Say Y if you want to add support for SoC audio on imapx200 
+	  or imapx200 with the WM8987.
+ 
+config SND_IMAPX200_SOC_I2S
+	tristate
+
+endmenu

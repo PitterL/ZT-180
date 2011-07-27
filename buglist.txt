@@ -1,0 +1,51 @@
+2010-7-14
+	1、在touch驱动里面，由于touch和电池共用i2c读函数，所以在i2c的读函数中增加mutex；
+	2、修复nand驱动；
+	3、修复memalloc的bug；
+
+2010-7-13
+	1、增加wifi的开关电，驱动直接在tsc2007.c中添加；
+
+2010-6-17 yqcui
+	1、修改memalloc驱动；
+	2、修改video的时钟，从而去掉了android桌面上的两条横杠；
+	3、修改i2c的频率；
+	
+2010-6-6 yqcui
+	1、修复ashmem的bug；
+	2、增加内存预分配
+
+2010-6-2 yqcui
+	1、google map可以使用
+	2、webkit崩溃问题解决
+	3、修改触摸屏，提高触摸屏的速度
+	4、提高i2c的速度
+
+2010-5-29 yqcui
+	1、完善电池驱动；
+
+2010-5-28 yqcui
+	1、在936M可以正常运行2d、3d
+
+2010-5-25 yqcui
+	1、调整触摸屏驱动drivers/input/touchscreen/tsc2007.c，涉及到中断问题，并修改了 arch/arm/mach-imapx200/irq.c
+	2、wm8988已经实现基本的放音
+	
+
+2010-5-17 yqcui
+根据我们自己定义的产品，我们修改如下：
+	1、在drivers/usb/core/hub.c和drivers/usb/core/usb.c中增加rt3070的内存预分配；
+	2、在drivers/char/imap-sensors中增加2g-sensor的驱动；
+	3、在arch/arm/plat-imap/gpio.c中增加gpio的驱动；
+	4、在arch/arm/mach-imapx200/cpu.c中修改键盘码值；
+	5、在drivers/power/imapx200_battery.c增加电池检测的驱动；
+	6、在drivers/input/touchscreen/tsc2007.c中增加touch的驱动；
+	7、把打印串口从uart0改为uart1；
+	8、把ps0改为ps2；
+	9、在drivers/video/backlight/imapx200_bl.c中增加背光的驱动；
+	10、在drivers/hid/中增加usb键盘和usb鼠标的驱动；
+	11、修改I2C驱动；
+	
+	
+	
+
