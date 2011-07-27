@@ -1,0 +1,163 @@
+# arch/arm/plat-imap/Kconfig
+#
+# Copyright (c) 2009~2014 ShangHai Infotm Ltd all rights reserved.
+#
+# Licensed under GPLv2
+
+config PLAT_IMAP
+	bool
+	depends on ARCH_IMAP
+	default y if ARCH_IMAP
+	select NO_IOPORT
+	select ARCH_REQUIRE_GPIOLIB
+	help
+	  Base platform code for any Infotm IMAP device
+
+if PLAT_IMAP
+
+#config PLAT_IMAPX200
+#	bool "IMAPX200 Platform support"
+#	depends on ARCH_IMAP
+#	default y if CPU_IMAPX200
+#	help
+#	  Support for Infotm IMAPX200 CPU based systems.
+
+menuconfig PLAT_IMAPX200
+	bool "IMAPX200 Platform support"
+	depends on ARCH_IMAP
+	default y if CPU_IMAPX200
+	help
+	  Support for Infotm IMAPX200 CPU based systems.
+
+if PLAT_IMAPX200
+
+choice
+	prompt "hardware board code"
+	depends on ARCH_IMAP
+	help
+	  Select board type.
+
+config BOARD_B0
+	bool "board b0"
+	depends on ARCH_IMAP
+	help
+	  nand 10 inch
+config BOARD_E2
+	bool "board e2"
+	depends on ARCH_IMAP
+	help
+	  nand 7 inch
+config BOARD_E3
+	bool "board e3"
+	depends on ARCH_IMAP
+	help
+	  inand 7 inch	 
+config BOARD_E4
+	bool "board e4"
+	depends on ARCH_IMAP
+	help
+	  inand 7 inch blue board(e3+)
+config BOARD_E5
+	bool "board e5"
+	depends on ARCH_IMAP
+	help
+	  inand 7 inch blue board 512M
+config BOARD_F0
+	bool "board f0"
+	depends on ARCH_IMAP
+	help
+	  inand 7 inch sdio wifi,multi-touch		  
+config BOARD_G0
+	bool "board g0"
+	depends on ARCH_IMAP
+	help
+	  inand 10 inch	
+config BOARD_G0_3G
+	bool "board g0 3g"
+	depends on ARCH_IMAP
+	help
+	  inand 10 inch(3g)
+config BOARD_H0
+	bool "board h0"
+	depends on ARCH_IMAP
+	help
+	  inand 10 inch iron
+config BOARD_I0
+	bool "board i0"
+	depends on ARCH_IMAP
+	help
+	  inand 8 inch iron
+config BOARD_J0
+	bool "board j0"
+	depends on ARCH_IMAP
+	help
+	  inand 8 inch
+config BOARD_K0
+	bool "board k0"
+	depends on ARCH_IMAP
+	help
+	  inand 10 inch gps	  
+endchoice
+
+endif
+
+config IMAPX200_PWM
+	bool "PWM device support"
+	default y if CPU_IMAPX200
+	select HAVE_PWM
+	help
+	  Support for exporting the PWM timer blocks via the pwm device
+	  system.
+
+config IMAPX200_DMA
+	bool "IMAPX200 DMA support"
+	depends on ARCH_IMAP
+	help
+	  IMAPX200 DMA support. This is needed for drivers like sound which
+	  use the DMA system to move data to and from the peripheral blocks.
+
+config IMAPX200_DMA_DEBUG
+	bool "IMAPX200 DMA support debug"
+	depends on ARCH_IMAP && IMAPX200_DMA
+	help
+	  Enable debugging output for the DMA code. This option sends info
+	  to the kernel log, at priority KERN_DEBUG.
+
+config IMAP_LOWLEVEL_UART_PORT
+	int "IMAP UART to use for low-level messages"
+	depends on PLAT_IMAP
+	default 0
+	help
+	  Choice of which UART port to use for the low-level messages,
+	  such as the `Uncompressing...` at start time. The value of
+	  this configuration should be between zero and two. The port
+	  must have been initialised by the boot-loader before use.
+
+comment "iMAP Settings"
+
+menu "iMAP Reserved Memory"
+
+config IMAP_RESERVEMEM_SIZE_ETH
+	int "Memory Size Reserved for Ethernet (KB)"
+	depends on ARCH_IMAP && GMAC_UNIV_ETHERNET
+	default "0"
+config IMAP_RESERVEMEM_SIZE_PMEM
+	int "Memory Size Reserved for Android_pmem (KB)"
+	depends on ARCH_IMAP && ANDROID_PMEM
+	default "0"
+
+endmenu
+
+config IMAP_FPGA
+	bool "iMAP FPGA Clock"
+	depends on ARCH_IMAP
+	default n
+	help
+	  If you are operating on the FPGA platform, say Y here!
+
+config FPGA_EXT_CLOCK
+	int "FPGA External Clock Setting"
+	depends on IMAP_FPGA
+	default "40000000"
+
+endif

@@ -1,0 +1,16 @@
+#ifndef __IMAP_ADDR__
+#define __IMAP_ADDR__
+
+#include <plat/imapx.h>
+//
+//#define PERIPHERAL_BASE_ADDR		(0x70c00000)
+
+/* UARTs */
+#define IMAP_VA_UART            		IMAP_ADDR(0x01000000)
+#define UART0_BASE_ADDR				(PERIPHERAL_BASE_ADDR_PA+0x220000)
+#define UART1_BASE_ADDR				(PERIPHERAL_BASE_ADDR_PA+0x221000)
+#define UART2_BASE_ADDR				(PERIPHERAL_BASE_ADDR_PA+0x222000)
+#define UART3_BASE_ADDR				(PERIPHERAL_BASE_ADDR_PA+0x223000)
+#define IMAP_SZ_UART            		SZ_16K
+
+#endif

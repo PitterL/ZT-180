@@ -1,0 +1,31 @@
+#!/system/bin/busybox sh
+
+chmod 777 /system/build.prop /system/app/* /system/lib/* /system/framework/* /system/etc/permissions/*
+chown system.system /system/build.prop /system/app/* /system/lib/* /system/framework
+
+/system/bin/busybox insmod /system/lib/modules/galcore.ko registerMemBase=0x20f00000 irqLine=54 contiguousSize=0x1400000
+/system/bin/busybox mknod /dev/galcore c 199 0
+chmod 777 /dev/graphics/fb0
+chmod 777 /dev/galcore
+
+##	/system/bin/busybox mkfs.vfat /dev/block/mtdblock2
+##	/system/bin/busybox touch /data/mkfs_vfat.txt
+
+## busybox mkswap /dev/block/mtdblock3
+## busybox swapon /dev/block/mtdblock3
+
+/system/xbin/busybox chmod 770 -R /mtd
+
+if   [  -e   /mtd/sdcard.img   ];then
+        mkdir /dev/block/vold 0775 root system
+	busybox mknod /dev/block/vold/7:8 b 7 8
+        busybox losetup /dev/block/vold/7:8 /mtd/sdcard.img
+##        busybox mount -t vfat /dev/fakesdcard /sdcard
+##        setprop vold.fakesdcard.enable 1
+fi 
+
+/system/bin/busybox insmod /system/lib/modules/permfd.ko
+chmod 777 /dev/permfd
+
+chown root.root /system/xbin/su
+

@@ -1,0 +1,27 @@
+
+#arch/arm/mach-imapx200/Kconfig
+# Copyright (c) 2009~2014 ShangHai Infotm Ltd all rights reserved. 
+# Use of Infotm's code is governed by terms and conditions
+# stated in the accompanying licensing statement. 
+# Author:
+#     ALex Zhang   <tao_zhang@infotm.com>
+# Revision History: 
+# ----------------
+# 1.1  16/09/2009  Alex Zhang   
+
+menu "IMAPX200 Machines"
+
+config MACH_IMAPX200
+	bool "IMAPX200"
+	select CPU_IMAPX200
+	select MACH_IMAP
+	help
+	  Say Y here if you are using the IMAPX200
+
+endmenu
+
+config CPU_IMAPX200
+	bool
+	depends on ARCH_IMAP
+	help
+	  Support for IMAPX200 Infotm Mobile CPU based systems.

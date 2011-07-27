@@ -1,0 +1,11 @@
+#!/system/bin/busybox sh
+
+## if   [ !  -e   /data/etc/init.evdo-pppd   ];then
+
+if   [ !  -d   /data/etc/   ];then
+	busybox mkdir /data/etc
+	busybox cp -rf /system/etc/ppp /data/etc/
+	busybox cp /system/etc/init.evdo-pppd /data/etc/
+	busybox cp /system/etc/init.gprs-pppd /data/etc/
+fi
+
