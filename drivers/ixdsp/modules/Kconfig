@@ -1,0 +1,16 @@
+#
+# Modules base on InfoTM DSP
+#
+
+if IX_DSP_CLASS
+
+config IX_DSP_GPS
+	tristate "Global Position System"
+	default n
+	depends on IX_DSP_CLASS
+	help
+	  Say Y here to enable GPS kernel driver, you must have the 
+	  coresponding solid DSP program to make the driver work
+	  correctly.
+
+endif # IX_DSP_CLASS

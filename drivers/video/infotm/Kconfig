@@ -1,0 +1,165 @@
+#
+# IMAP Video Configuration
+#
+
+config FB_IMAP
+	tristate "IMAP Framebuffer Support"
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	select FRAMEBUFFER_CONSOLE
+	select LOGO
+	select LOGO_LINUX_LANDSCAPED_CLUT224
+	depends on FB && ARCH_IMAP
+
+	default y
+	---help---
+	TBA
+
+choice
+depends on FB_IMAP
+prompt "Select LCD Type"
+default FB_IMAP_LCD1024X576
+config FB_IMAP_LCD800X480
+	bool "TFT LCD 800X480"
+	---help---
+	TBA
+config FB_IMAP_LCD800X480_XY
+	bool "TFT LCD 800X480 Xing Yuan"
+	---help---
+	TBA	
+config FB_IMAP_LCD800X480_XY2
+	bool "TFT LCD 800X480 Xing Yuan 2(stand)"
+	---help---
+	TBA		
+config FB_IMAP_LCD800X600
+	bool "TFT LCD 800X600"
+	---help---
+	TBA	
+config FB_IMAP_LCD1024X576
+	bool "TFT LCD 1024X576"
+	---help---
+	TBA
+config FB_IMAP_LCD1024X600
+	bool "TFT LCD 1024X600"
+	---help---
+	TBA	
+config FB_IMAP_LCD1024X600_QM
+	bool "TFT LCD 1024X600 Qi Mei"
+	---help---
+	TBA	
+config FB_IMAP_LCD1024X600_XY
+	bool "TFT LCD 1024X600 Xing Yuan"
+	---help---
+	TBA		
+config FB_IMAP_LCD1024X600_7INCH
+	bool "TFT LCD 1024X600_7INCH"
+	---help---
+	TBA		
+config FB_IMAP_LCD1024X768_8INCH
+	bool "TFT LCD 1024X768_8INCH"
+	---help---
+	TBA	
+config FB_IMAP_LCD1024X768_9INCH
+	bool "TFT LCD 1024X768_9INCH"
+	---help---
+	TBA		
+endchoice
+
+config FB_IMAP_BPP
+	tristate "Advanced options for IMAP Framebuffer"
+	depends on FB_IMAP
+	default y
+	---help---
+	TBA
+
+choice
+depends on FB_IMAP_BPP
+prompt "Select BPP(Bits Per Pixel)"
+default FB_IMAP_BPP16
+config FB_IMAP_BPP8
+	bool "8BPP A1RGB232"
+	---help---
+	TBA
+
+config FB_IMAP_BPP16
+	bool "16BPP RGB565"
+	---help---
+	TBA
+
+config FB_IMAP_BPP18
+	bool "18BPP RGB666"
+	---help---
+	TBA
+
+config FB_IMAP_BPP19
+	bool "19BPP A1RGB666"
+	---help---
+	TBA
+	
+config FB_IMAP_BPP24
+	bool "24BPP RGB888"
+	---help---
+	TBA
+	
+config FB_IMAP_BPP25
+	bool "25BPP A1RGB888"
+	---help---
+	TBA
+	
+config FB_IMAP_BPP28
+	bool "28BPP A4RGB888"
+	---help---
+	TBA
+	
+config FB_IMAP_BPP32
+	bool "32BPP A8RGB888"
+	---help---
+	TBA	
+endchoice
+
+config FB_IMAP_NUM
+	int "Number of Framebuffers"
+	depends on FB_IMAP_BPP && ARCH_IMAP
+	default "1"
+	---help---
+	TBA
+
+config FB_IMAP_VIRTUAL_SCREEN
+	bool "Enable Virtual Screen"
+	depends on FB_IMAP_BPP
+
+	default n
+	---help---
+	TBA
+
+config FB_IMAP_DOUBLE_BUFFER
+	bool "Enable Double Buffer"
+	depends on FB_IMAP_BPP
+	default n
+	---help---
+	TBA
+
+config FB_IMAP_KERNEL_LOGO
+	bool "Enable Kernel Logo"
+	depends on FB_IMAP_BPP
+
+	default n
+	---help---
+	TBA
+
+config LCD_FOR_PRODUCT
+        bool "Product LCD Driver Select"
+        depends on FB_IMAP_BPP
+
+        default n
+        ---help---
+        If you are using product board, please select this option.
+
+config LCD_ENABLE_IRQ
+	bool "Enable LCD interrupt"
+	depends on FB_IMAP
+
+	default n
+	---help---
+	  Enable framebuffer driver to setup a interrupt instance.

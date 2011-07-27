@@ -1,0 +1,26 @@
+#
+# g sensor 
+#
+
+menuconfig SENSOR
+	tristate "Gsensor support"
+	depends on ARCH_IMAP
+  default y
+
+if SENSOR
+
+config SENSOR_2AXIS
+  depends on ARCH_IMAP 
+	boolean "g-sensor simple 2 axis"
+	default n
+
+config SENSOR_ACC
+  depends on ARCH_IMAP
+	boolean "g-sensor aac MMA7660FC"
+	default n
+	help
+	  Say Y here if you intend to run lm-sensors 3.1.1 or older, or any
+	  other user-space package which expects i2c adapters to be class
+	  devices. If you don't know, say Y.
+
+endif

@@ -1,0 +1,11 @@
+#
+## TV/VGA Output configuration
+#
+
+config HDMI_OUTPUT_SUPPORT
+tristate "HDMI Output Support"
+depends on FB
+default y
+---help---
+TBA
+

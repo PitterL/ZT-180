@@ -1,0 +1,20 @@
+#
+# ops_infotm
+#
+# sololz
+#
+
+config ASYSOPS
+	bool "Shared memory, message, lock for Android by InfoTM"
+	default y
+	---help---
+	In Android, standard Unix shared memory, message and lock is abandoned 
+	by Google. Instead, Google implements a so called binder to do similar
+	operations. But we consider it to be so much complex and too hard to 
+	preserve, so we write the same driver to implement it with easier usage.
+
+config ASYSOPS_DEBUG
+	bool "print Memalloc debug messages"
+	depends on ASYSOPS
+	default n
+

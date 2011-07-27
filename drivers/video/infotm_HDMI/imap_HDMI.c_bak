@@ -1,0 +1,904 @@
+/***************************************************************************** 
+ * ** drivers/video/infotm_HDMI/imap_HDMI.c
+ * ** 
+ * ** Copyright (c) 2009~2014 ShangHai Infotm Ltd all rights reserved. 
+ * ** 
+ * ** Use of Infotm's code is governed by terms and conditions 
+ * ** stated in the accompanying licensing statement. 
+ * ** 
+ * ** Description: Implementation file of Infotm HDMI.
+ * **
+ * ** Author:
+ * **     Alex Zhang <alex.zhang@infotmic.com.cn>
+ * **      
+ * ** Revision History: 
+ * ** ----------------- 
+ * ** 1.0  06/11/2010 Alex Zhang 
+ * *****************************************************************************/
+
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/errno.h>
+#include <linux/delay.h>
+#include <linux/string.h>
+#include <linux/i2c.h>
+#include <linux/i2c-id.h>
+#include <linux/mutex.h>
+#include <linux/kthread.h>
+#include <linux/slab.h>
+#include <linux/platform_device.h>
+#include <linux/types.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/interrupt.h>
+#include <linux/kernel.h>
+#include <linux/ioctl.h>
+#include <linux/poll.h>
+#include <asm/io.h>
+#include <asm/uaccess.h>
+#include <plat/imapx.h>
+#include <asm/mach/irq.h>
+#include "imap_HDMI.h"
+#include "EP932api.h"
+#include "EP932Controller.h"
+
+#define HDMI_MAJOR               84
+#define HDMI_MINOR               0
+#define i2c_device_address  0x70
+
+static unsigned short normal_i2c[] = {0, I2C_CLIENT_END};
+
+static struct class *HDMI_class;
+
+static void  HDMI_Hotplug_Monitor(void);
+
+I2C_CLIENT_INSMOD;
+
+wait_queue_head_t       HDMI_wait;
+spinlock_t              lock;
+struct completion      Menu_Button; 
+EXTERL_SYMBOL(Menu_Button);
+unsigned int            irq = IRQ_EINT4;
+unsigned int	HDMI_Hotplug_In = 0; 
+unsigned int	HDMI_Hotplug_Out = 0;
+
+static const struct i2c_device_id HDMI_i2c_id[] = {
+	{ "imap_HDMI", 0 },
+	{ }
+};
+
+static struct i2c_client gHDMIClient;
+static struct mutex HDMI_lock;
+
+struct_lcd_timing_param ids_timing[13] = 
+{
+	{1,0,3,12,0,5,480,40,2,0,6,800,250,2,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1},
+	{1,0,3,12,0,35,1080,4,6,1,127,1920,109,44,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1},
+	{1,0,3,12,0,15,1080,2,5,1,128,1920,108,44,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1},
+	{1,0,3,12,0,20,720,5,5,0,128,1280,202,40,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1},
+	{2,0,3,12,0,30,480,9,6,0,60,720,16,62,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1},
+	{2,0,3,12,0,30,480,9,6,0,60,720,16,62,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1},
+	{2,0,3,12,0,16,480,4,3,0,114,720,38,124,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1},
+	{2,0,3,12,0,16,480,4,3,0,114,720,38,124,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1},
+	{2,0,3,12,0,39,576,5,5,0,68,720,12,64,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1},
+	{2,0,3,12,0,39,576,5,5,0,68,720,12,64,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1}, 
+	{2,0,3,12,0,19,576,2,3,0,128,720,24,136,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1},
+	{2,0,3,12,0,19,576,2,3,0,128,720,24,136,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1}, 
+	{2,0,3,12,0,33,480,10,2,0,48,640,16,96,0x06,0,0,0,0,0,0,0,0,0,0,0,0,1},    
+};
+
+struct_lds_clk_param ids_clk[13] = 
+{
+	{0x13,0x1111},
+	{0x24,0x0909},
+	{0x24,0x1515},
+	{0x24,0x1515},
+	{0x1A,0x1D1D},
+	{0x1A,0x1D1D},
+	{0x1A,0x1D1D},
+	{0x1A,0x1D1D},
+	{0x1A,0x1D1D},
+	{0x1A,0x1D1D},
+	{0x1A,0x1D1D},
+	{0x1A,0x1D1D},
+	{0x18,0x1D1D},
+};
+
+#if 0
+BOOL lcd_change_timing(LCD_TIMING timing)
+{
+	unsigned int temp;
+	
+/*close lcd screen*/
+	if(timing != 0)
+	{
+		temp = readl(rGPFCON);
+		temp &= ~(0x3<<12);
+		temp |= 0x1<<12;
+		writel(temp,rGPFCON);
+
+		temp = readl(rGPFDAT);
+		temp &= ~(0x1<<6);
+		writel(temp,rGPFDAT);
+	}	
+
+/*disable lcd output before change timing*/	
+	temp = readl(IMAP_OVCW0CR);
+	temp &= ~(0x1<<0);
+	writel(temp,IMAP_OVCW0CR);
+
+//	temp = readl(IMAP_LCDCON1);
+//	temp &= ~(0x1<<0);
+//	writel(temp,IMAP_LCDCON1);
+
+/*change timing*/
+	lcd_config_clk(timing);
+	lcd_config_controller(timing);
+
+/*enable lcd data output*/	
+	temp = readl(IMAP_OVCW0CR);
+	temp |= (0x1<<0);
+	writel(temp,IMAP_OVCW0CR);
+
+	temp = readl(IMAP_LCDCON1);
+	temp |= (0x1<<0);
+	writel(temp,IMAP_LCDCON1);
+
+
+	if(timing == 0)
+	{
+		temp = readl(rGPFCON);
+		temp &= ~(0x3<<12);
+		temp |= 0x1<<12;
+		writel(temp,rGPFCON);
+
+		temp = readl(rGPFDAT);
+		temp |= (0x1<<6);
+		writel(temp,rGPFDAT);
+	}
+	return 0;
+}
+#else
+static unsigned int LCDCON_DataBuf[6];
+static unsigned int LCDINT_DataBuf[3];
+static unsigned int OVLCON0_DataBuf[12];
+static unsigned int OVLCON1_DataBuf[12];
+static unsigned int OVLCON2_DataBuf[12];
+static unsigned int OVLCON3_DataBuf[10];
+static unsigned int OVLCOLCON_DataBuf[14];
+static unsigned int OVLPAL0_DataBuf[256];
+static unsigned int OVLPAL1_DataBuf[256];
+static unsigned int OVLPAL2_DataBuf[128];
+static unsigned int OVLPAL3_DataBuf[128];
+
+BOOL lcd_change_timing(LCD_TIMING timing)
+{
+	unsigned int temp;
+	unsigned char temp_reg[4];
+	int i;
+
+/*close lcd screen*/
+	if(timing != LCD)
+	{
+		temp = readl(rGPFCON);
+		temp &= ~(0x3<<12);
+		temp |= 0x1<<12;
+		writel(temp,rGPFCON);
+
+		temp = readl(rGPFDAT);
+		temp &= ~(0x1<<6);
+		writel(temp,rGPFDAT);
+	}	
+
+/*Save IDS register value before software reset*/
+/*LCD controller*/
+	LCDCON_DataBuf[0] = __raw_readl(IMAP_LCDCON1);
+	LCDCON_DataBuf[1] = __raw_readl(IMAP_LCDCON2);
+	LCDCON_DataBuf[2] = __raw_readl(IMAP_LCDCON3);
+	LCDCON_DataBuf[3] = __raw_readl(IMAP_LCDCON4);
+	LCDCON_DataBuf[4] = __raw_readl(IMAP_LCDCON5);
+	LCDCON_DataBuf[5] = __raw_readl(IMAP_LCDVCLKFSR);
+
+/*Interrupt */	
+	LCDINT_DataBuf[0] = __raw_readl(IMAP_IDSINTPND);
+	LCDINT_DataBuf[1] = __raw_readl(IMAP_IDSSRCPND);
+	LCDINT_DataBuf[2] = __raw_readl(IMAP_IDSINTMSK);
+
+/*Overlay controller 0*/	
+	OVLCON0_DataBuf[0] = __raw_readl(IMAP_OVCDCR);
+	OVLCON0_DataBuf[1] = __raw_readl(IMAP_OVCPCR);	
+	OVLCON0_DataBuf[2] = __raw_readl(IMAP_OVCBKCOLOR);
+	OVLCON0_DataBuf[3] = __raw_readl(IMAP_OVCW0CR);
+	OVLCON0_DataBuf[4] = __raw_readl(IMAP_OVCW0PCAR);
+	OVLCON0_DataBuf[5] = __raw_readl(IMAP_OVCW0PCBR);
+	OVLCON0_DataBuf[6] = __raw_readl(IMAP_OVCW0B0SAR);
+	OVLCON0_DataBuf[7] = __raw_readl(IMAP_OVCW0B1SAR);
+	OVLCON0_DataBuf[8] = __raw_readl(IMAP_OVCW0VSSR);
+	OVLCON0_DataBuf[9] = __raw_readl(IMAP_OVCW0CMR);
+	OVLCON0_DataBuf[10] = __raw_readl(IMAP_OVCW0B2SAR);
+	OVLCON0_DataBuf[11] = __raw_readl(IMAP_OVCW0B3SAR);
+
+/*Overlay controller 1*/	
+	OVLCON1_DataBuf[0] = __raw_readl(IMAP_OVCW1CR);
+	OVLCON1_DataBuf[1] = __raw_readl(IMAP_OVCW1PCAR);
+	OVLCON1_DataBuf[2] = __raw_readl(IMAP_OVCW1PCBR);
+	OVLCON1_DataBuf[3] = __raw_readl(IMAP_OVCW1PCCR);
+	OVLCON1_DataBuf[4] = __raw_readl(IMAP_OVCW1B0SAR);
+	OVLCON1_DataBuf[5] = __raw_readl(IMAP_OVCW1B1SAR);
+	OVLCON1_DataBuf[6] = __raw_readl(IMAP_OVCW1VSSR);
+	OVLCON1_DataBuf[7] = __raw_readl(IMAP_OVCW1CKCR);
+	OVLCON1_DataBuf[8] = __raw_readl(IMAP_OVCW1CKR);
+	OVLCON1_DataBuf[9] = __raw_readl(IMAP_OVCW1CMR);
+	OVLCON1_DataBuf[10] = __raw_readl(IMAP_OVCW1B2SAR);
+	OVLCON1_DataBuf[11] = __raw_readl(IMAP_OVCW1B3SAR);
+
+/*Overlay controller 2*/	
+	OVLCON2_DataBuf[0] = __raw_readl(IMAP_OVCW2CR);
+	OVLCON2_DataBuf[1] = __raw_readl(IMAP_OVCW2PCAR);
+	OVLCON2_DataBuf[2] = __raw_readl(IMAP_OVCW2PCBR);
+	OVLCON2_DataBuf[3] = __raw_readl(IMAP_OVCW2PCCR);
+	OVLCON2_DataBuf[4] = __raw_readl(IMAP_OVCW2B0SAR);
+	OVLCON2_DataBuf[5] = __raw_readl(IMAP_OVCW2B1SAR);
+	OVLCON2_DataBuf[6] = __raw_readl(IMAP_OVCW2VSSR);
+	OVLCON2_DataBuf[7] = __raw_readl(IMAP_OVCW2CKCR);
+	OVLCON2_DataBuf[8] = __raw_readl(IMAP_OVCW2CKR);
+	OVLCON2_DataBuf[9] = __raw_readl(IMAP_OVCW2CMR);
+	OVLCON2_DataBuf[10] = __raw_readl(IMAP_OVCW2B2SAR);
+	OVLCON2_DataBuf[11] = __raw_readl(IMAP_OVCW2B3SAR);
+
+/*Overlay controller 3*/	
+	OVLCON3_DataBuf[0] = __raw_readl(IMAP_OVCW3CR);
+	OVLCON3_DataBuf[1] = __raw_readl(IMAP_OVCW3PCAR);
+	OVLCON3_DataBuf[2] = __raw_readl(IMAP_OVCW3PCBR);
+	OVLCON3_DataBuf[3] = __raw_readl(IMAP_OVCW3PCCR);
+	OVLCON3_DataBuf[4] = __raw_readl(IMAP_OVCW3BSAR);
+	OVLCON3_DataBuf[5] = __raw_readl(IMAP_OVCW3VSSR);
+	OVLCON3_DataBuf[6] = __raw_readl(IMAP_OVCW3CKCR);
+	OVLCON3_DataBuf[7] = __raw_readl(IMAP_OVCW3CKR);
+	OVLCON3_DataBuf[8] = __raw_readl(IMAP_OVCW3CMR);
+	OVLCON3_DataBuf[9] = __raw_readl(IMAP_OVCW3SABSAR);
+
+/*Overlay color controller*/	
+	OVLCOLCON_DataBuf[0] = __raw_readl(IMAP_OVCBRB0SAR);
+	OVLCOLCON_DataBuf[1] = __raw_readl(IMAP_OVCBRB1SAR);
+	OVLCOLCON_DataBuf[2] = __raw_readl(IMAP_OVCOEF11);
+	OVLCOLCON_DataBuf[3] = __raw_readl(IMAP_OVCOEF12);
+	OVLCOLCON_DataBuf[4] = __raw_readl(IMAP_OVCOEF13);
+	OVLCOLCON_DataBuf[5] = __raw_readl(IMAP_OVCOEF21);
+	OVLCOLCON_DataBuf[6] = __raw_readl(IMAP_OVCOEF22);
+	OVLCOLCON_DataBuf[7] = __raw_readl(IMAP_OVCOEF23);
+	OVLCOLCON_DataBuf[8] = __raw_readl(IMAP_OVCOEF31);
+	OVLCOLCON_DataBuf[9] = __raw_readl(IMAP_OVCOEF32);
+	OVLCOLCON_DataBuf[10] = __raw_readl(IMAP_OVCOEF33);
+	OVLCOLCON_DataBuf[11] = __raw_readl(IMAP_OVCOMC);
+	OVLCOLCON_DataBuf[12] = __raw_readl(IMAP_OVCBRB2SAR);
+	OVLCOLCON_DataBuf[13] = __raw_readl(IMAP_OVCBRB3SAR);
+
+/*Overlay PAL0 */
+	for(i=0;i<256;i++)	
+		OVLPAL0_DataBuf[i] = __raw_readl(IMAP_OVCW0PAL+i*0x4);
+
+/*Overlay PAL1 */
+	for(i=0;i<256;i++)	
+		OVLPAL1_DataBuf[i] = __raw_readl(IMAP_OVCW1PAL+i*0x4);
+
+/*Overlay PAL2 */
+	for(i=0;i<128;i++)	
+		OVLPAL2_DataBuf[i] = __raw_readl(IMAP_OVCW2PAL+i*0x4);
+
+/*Overlay PAL3 */
+	for(i=0;i<256;i++)	
+		OVLPAL3_DataBuf[i] = __raw_readl(IMAP_OVCW3PAL+i*0x4);
+
+/*Save lcd and osd open status*/
+	temp_reg[0] = (OVLCON0_DataBuf[3] & 0x1);
+	temp_reg[1]= (OVLCON1_DataBuf[0] & 0x1);
+	temp_reg[2]= (OVLCON2_DataBuf[0] & 0x1);
+	temp_reg[3]= (OVLCON3_DataBuf[0] & 0x1);
+
+
+/*LDS module software reset*/
+	temp = __raw_readl(rAHBP_RST);
+	temp |= 0x1<<6;
+	__raw_writel(temp, rAHBP_RST):
+
+	Sleep(10);
+	temp = __raw_readl(rAHBP_RST);
+	temp &= ~(0x1<<6);
+	__raw_writel(temp, rAHBP_RST):
+	
+/*Config LCD clock*/
+	lcd_config_clk(timing);
+
+
+/*write value back to register*/
+	__raw_writel(LCDINT_DataBuf[2], IMAP_IDSINTMSK);
+
+	__raw_writel(OVLCON0_DataBuf[0], IMAP_OVCDCR);
+	__raw_writel(OVLCON0_DataBuf[1], IMAP_OVCDCR);
+	__raw_writel(OVLCON0_DataBuf[2], IMAP_OVCBKCOLOR);
+	__raw_writel((OVLCON0_DataBuf[3] & ~0x1), IMAP_OVCW0CR);
+	__raw_writel(OVLCON0_DataBuf[4], IMAP_OVCW0PCAR);
+	__raw_writel(OVLCON0_DataBuf[5], IMAP_OVCW0PCBR);
+	__raw_writel(OVLCON0_DataBuf[6], IMAP_OVCW0B0SAR);
+	__raw_writel(OVLCON0_DataBuf[7], IMAP_OVCW0B1SAR);
+	__raw_writel(OVLCON0_DataBuf[8], IMAP_OVCW0VSSR);
+	__raw_writel(OVLCON0_DataBuf[9], IMAP_OVCW0CMR);
+	__raw_writel(OVLCON0_DataBuf[10], IMAP_OVCW0B2SAR);
+	__raw_writel(OVLCON0_DataBuf[11], IMAP_OVCW0B3SAR);
+
+	
+	__raw_writel((OVLCON1_DataBuf[0] & ~0x1), IMAP_OVCW1CR);
+	__raw_writel(OVLCON1_DataBuf[1], IMAP_OVCW1PCAR);
+	__raw_writel(OVLCON1_DataBuf[2], IMAP_OVCW1PCBR);
+	__raw_writel(OVLCON1_DataBuf[3], IMAP_OVCW1PCCR);
+	__raw_writel(OVLCON1_DataBuf[4], IMAP_OVCW1B0SAR);
+	__raw_writel(OVLCON1_DataBuf[5], IMAP_OVCW1B1SAR);
+	__raw_writel(OVLCON1_DataBuf[6], IMAP_OVCW1VSSR);
+	__raw_writel(OVLCON1_DataBuf[7], IMAP_OVCW1CKCR);
+	__raw_writel(OVLCON1_DataBuf[8], IMAP_OVCW1CKR);
+	__raw_writel(OVLCON1_DataBuf[9], IMAP_OVCW1CMR);
+	__raw_writel(OVLCON1_DataBuf[10], IMAP_OVCW1B2SAR);
+	__raw_writel(OVLCON1_DataBuf[11], IMAP_OVCW1B3SAR);
+	
+	__raw_writel((OVLCON2_DataBuf[0] & ~0x1), IMAP_OVCW2CR);
+	__raw_writel(OVLCON2_DataBuf[1], IMAP_OVCW2PCAR);
+	__raw_writel(OVLCON2_DataBuf[2], IMAP_OVCW2PCBR);
+	__raw_writel(OVLCON2_DataBuf[3], IMAP_OVCW2PCCR);
+	__raw_writel(OVLCON2_DataBuf[4], IMAP_OVCW2B0SAR);
+	__raw_writel(OVLCON2_DataBuf[5], IMAP_OVCW2B1SAR);
+	__raw_writel(OVLCON2_DataBuf[6], IMAP_OVCW2VSSR);
+	__raw_writel(OVLCON2_DataBuf[7], IMAP_OVCW2CKCR);
+	__raw_writel(OVLCON2_DataBuf[8], IMAP_OVCW2CKR);
+	__raw_writel(OVLCON2_DataBuf[9], IMAP_OVCW2CMR);
+	__raw_writel(OVLCON2_DataBuf[10], IMAP_OVCW2B2SAR);
+	__raw_writel(OVLCON2_DataBuf[11], IMAP_OVCW2B3SAR);
+
+	
+	__raw_writel((OVLCON3_DataBuf[0] & ~0x1), IMAP_OVCW3CR);
+	__raw_writel(OVLCON3_DataBuf[1], IMAP_OVCW3PCAR);
+	__raw_writel(OVLCON3_DataBuf[2], IMAP_OVCW3PCBR);
+	__raw_writel(OVLCON3_DataBuf[3], IMAP_OVCW3PCCR);
+	__raw_writel(OVLCON3_DataBuf[4], IMAP_OVCW3BSAR);
+	__raw_writel(OVLCON3_DataBuf[5], IMAP_OVCW3VSSR);
+	__raw_writel(OVLCON3_DataBuf[6], IMAP_OVCW3CKCR);
+	__raw_writel(OVLCON3_DataBuf[7], IMAP_OVCW3CKR);
+	__raw_writel(OVLCON3_DataBuf[8], IMAP_OVCW3CMR);
+	__raw_writel(OVLCON3_DataBuf[9], IMAP_OVCW3SABSAR);
+
+	
+	__raw_writel(OVLCOLCON_DataBuf[0], IMAP_OVCBRB0SAR);
+	__raw_writel(OVLCOLCON_DataBuf[1], IMAP_OVCBRB1SAR);
+	__raw_writel(OVLCOLCON_DataBuf[2], IMAP_OVCOEF11);
+	__raw_writel(OVLCOLCON_DataBuf[3], IMAP_OVCOEF12);
+	__raw_writel(OVLCOLCON_DataBuf[4], IMAP_OVCOEF13);
+	__raw_writel(OVLCOLCON_DataBuf[5], IMAP_OVCOEF21);
+	__raw_writel(OVLCOLCON_DataBuf[6], IMAP_OVCOEF22);
+	__raw_writel(OVLCOLCON_DataBuf[7], IMAP_OVCOEF23);
+	__raw_writel(OVLCOLCON_DataBuf[8], IMAP_OVCOEF31);
+	__raw_writel(OVLCOLCON_DataBuf[9], IMAP_OVCOEF32);
+	__raw_writel(OVLCOLCON_DataBuf[10], IMAP_OVCOEF33);
+	__raw_writel(OVLCOLCON_DataBuf[11], IMAP_OVCOMC);
+	__raw_writel(OVLCOLCON_DataBuf[12], IMAP_OVCBRB2SAR);
+	__raw_writel(OVLCOLCON_DataBuf[13], IMAP_OVCBRB3SAR);
+
+	for(i=0;i<256;i++)
+		__raw_writel(OVLPAL0_DataBuf[i], IMAP_OVCW0PAL + 0x4*i);
+	
+	for(i=0;i<256;i++)
+		__raw_writel(OVLPAL1_DataBuf[i], IMAP_OVCW1PAL + 0x4*i);
+	
+	for(i=0;i<128;i++)
+		__raw_writel(OVLPAL2_DataBuf[i], IMAP_OVCW2PAL + 0x4*i);
+	
+	for(i=0;i<128;i++)
+		__raw_writel(OVLPAL3_DataBuf[i], IMAP_OVCW3PAL + 0x4*i);
+	
+
+/*disable lcd output before change timing*/	
+//	WRITE_REG(IMAP_LCDCON1, (READ_REG(IMAP_LCDCON1) & ~IMAP_LCDCON1_ENVID_ENABLE));
+//	WRITE_REG(IMAP_OVCW0CR , (READ_REG(IMAP_OVCW0CR) & ~IMAP_OVCWxCR_ENWIN_ENABLE));	
+
+/*change osd window smaller than Hactive and Vactive back to system resolution if timing 12*/
+
+	if(timing == 12)
+	{
+		WRITE_REG(IMAP_OVCW0PCAR , IMAP_OVCWxPCAR_LEFTTOPX(0) | IMAP_OVCWxPCAR_LEFTTOPY(0));
+		WRITE_REG(IMAP_OVCW0PCBR , IMAP_OVCWxPCBR_RIGHTBOTX(DISPLAY_WIDTH -1) | IMAP_OVCWxPCBR_RIGHTBOTY(DISPLAY_HEIGHT -1));	
+	}
+	else
+	{
+		if(ids_timing[timing].HACTIVE < DISPLAY_WIDTH)
+		{	
+			WRITE_REG(IMAP_OVCW0PCAR , IMAP_OVCWxPCAR_LEFTTOPX(0) | IMAP_OVCWxPCAR_LEFTTOPY(0));
+			WRITE_REG(IMAP_OVCW0PCBR , IMAP_OVCWxPCBR_RIGHTBOTX(ids_timing[timing].HACTIVE -1) | IMAP_OVCWxPCBR_RIGHTBOTY((READ_REG(IMAP_OVCW0PCBR) & 0x7ff ) -1));
+		}
+
+		if(ids_timing[timing].VACTIVE < DISPLAY_HEIGHT)
+		{	
+			WRITE_REG(IMAP_OVCW0PCAR , IMAP_OVCWxPCAR_LEFTTOPX(0) | IMAP_OVCWxPCAR_LEFTTOPY(0));
+			WRITE_REG(IMAP_OVCW0PCBR , IMAP_OVCWxPCBR_RIGHTBOTX(((READ_REG(IMAP_OVCW0PCBR) & (0x7ff<<16)) >> 16) -1) | IMAP_OVCWxPCBR_RIGHTBOTY(ids_timing[timing].VACTIVE -1));
+		}
+	}
+
+/*
+	WRITE_REG(IMAP_OVCW0PCAR , IMAP_OVCWxPCAR_LEFTTOPX(0) | IMAP_OVCWxPCAR_LEFTTOPY(0));
+	WRITE_REG(IMAP_OVCW0PCBR , IMAP_OVCWxPCBR_RIGHTBOTX(639) | IMAP_OVCWxPCBR_RIGHTBOTY(479));
+*/
+	
+/*change timing*/
+	lcd_config_controller(timing);
+
+/*enable lcd data output*/	
+	if(temp_reg[0])
+		WRITE_REG(IMAP_OVCW0CR , (READ_REG(IMAP_OVCW0CR ) |IMAP_OVCWxCR_ENWIN_ENABLE));
+
+	if(temp_reg[1])
+		WRITE_REG(IMAP_OVCW1CR , (READ_REG(IMAP_OVCW1CR ) |IMAP_OVCWxCR_ENWIN_ENABLE));
+
+	if(temp_reg[2])
+		WRITE_REG(IMAP_OVCW2CR , (READ_REG(IMAP_OVCW2CR ) |IMAP_OVCWxCR_ENWIN_ENABLE));
+
+	if(temp_reg[3])
+		WRITE_REG(IMAP_OVCW3CR , (READ_REG(IMAP_OVCW3CR ) |IMAP_OVCWxCR_ENWIN_ENABLE));
+
+	WRITE_REG(IMAP_LCDCON1, (READ_REG(IMAP_LCDCON1) | IMAP_LCDCON1_ENVID_ENABLE));
+
+#if 1
+	if(timing == 12)
+	{
+		temp = g_pGPIOReg->rGPFCON;
+		temp &= ~(0x3<<12);
+		temp |= 0x1<<12;
+		g_pGPIOReg->rGPFCON = temp;
+
+		temp = g_pGPIOReg->rGPFDAT;
+		temp |= (0x1<<6);
+		g_pGPIOReg->rGPFDAT = temp;		
+/*		
+		temp = g_pGPIOReg->rGPFCON;
+		temp &= ~(0x3<<16);
+		temp |= 0x2<<16;
+		g_pGPIOReg->rGPFCON = temp;
+*/
+	}
+#endif
+}
+#endif
+
+
+void lcd_config_clk(LCD_TIMING timing)
+{
+
+	unsigned int temp;
+
+	temp = readl(rDPLL_CFG); 
+	temp &=~(1<<31);
+	writel(temp,rDPLL_CFG);
+
+	temp = readl(rDPLL_CFG); 
+	temp = ids_clk[timing].DPLLCFG;
+	writel(temp,rDPLL_CFG);
+
+	//enable dpll	
+	temp = readl(rDPLL_CFG); 
+	temp |=(1<<31);
+	writel(temp,rDPLL_CFG);
+
+	/*wait untill dpll is locked*/
+	while(!(readl(rPLL_LOCKED) & 0x2));
+
+	temp = readl(rDIV_CFG4);
+	temp = ids_clk[timing].DIVCFG4;
+	writel(temp,rDIV_CFG4);
+}
+
+void lcd_config_controller(LCD_TIMING timing)
+{	
+	unsigned int reg_temp[5];
+
+	reg_temp[0] = (ids_timing[timing].VCLK <<	8) |		
+				(ids_timing[timing].EACH_FRAME << 7) |		
+				(ids_timing[timing].LCD_PANNEL << 5) |		
+				(ids_timing[timing].BPP_MODE << 1) |
+				(ids_timing[timing].LCD_OUTPUT);
+
+	reg_temp[1] = ((ids_timing[timing].VBPD -1) << 24) |
+				(((ids_timing[timing].VACTIVE -1) & ~0x400) <<14) |
+				((ids_timing[timing].VFPD -1 ) << 6) |
+				((ids_timing[timing].VSPW -1));
+
+	reg_temp[2] = (ids_timing[timing].VACTIVE_HIGHBIT <<31) |
+				((ids_timing[timing].HBPD -1) << 19) |
+				((ids_timing[timing].HACTIVE -1) << 8) |
+				((ids_timing[timing].HFPD -1));
+
+	reg_temp[3] = ((ids_timing[timing].HSPW -1));
+
+	reg_temp[4] = ((ids_timing[timing].COLOR_MODE) << 24)|
+				((ids_timing[timing].BPP24BL) << 12)|
+				((ids_timing[timing].FRM565) << 11) |
+				((ids_timing[timing].INVVCLK) << 10)|
+				((ids_timing[timing].INVVLINE) <<9 )|
+				((ids_timing[timing].INVVFRAME) <<8)|
+				((ids_timing[timing].INVVD) <<7) |
+				((ids_timing[timing].INVVDEN) << 6) |
+				((ids_timing[timing].INVPWREN) << 5)|
+				((ids_timing[timing].INVENDLINE) << 4)|
+				((ids_timing[timing].PWREN) << 3) |
+				((ids_timing[timing].ENLEND) <<2 ) |
+				((ids_timing[timing].BSWP) << 1) |
+				((ids_timing[timing].HWSWP));
+				
+	writel(reg_temp[0],IMAP_LCDCON1);
+	writel(reg_temp[1],IMAP_LCDCON2);
+	writel(reg_temp[2],IMAP_LCDCON3);
+	writel(reg_temp[3],IMAP_LCDCON4);
+	writel(reg_temp[4],IMAP_LCDCON5);
+}
+
+
+int HDMI_dev_init(struct i2c_client *client)
+{
+	printk("STEP1111111111\r\n");
+	EP932_If_Initial();
+	printk("STEP222222222\r\n");
+	EP_EP932M_Reset();
+	printk("STEP33333333\r\n");
+	HDMI_Hotplug_Monitor();
+	printk("STEP4444444444\r\n");
+
+	lcd_change_timing(HDMI_1080P);
+	printk("STEP55555555555\r\n");
+	msleep(200);
+	hdmi_main(HDMI_1080P);
+	printk("STEP66666666666\r\n");
+
+	return 0;
+}
+
+static int HDMI_Monitor_Thread()
+{
+	printk(KERN_INFO "In HDMI_Monitor_Thread\n");
+	wait_for_completion(&Menu_Button);
+	printk(KERN_INFO "Menu Button Pressed\n");
+	HDMI_Hotplug_Monitor();
+	return 0;
+}
+
+static int HDMI_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
+{
+	int ret = 0;
+	struct device *dev = NULL;
+	struct task_struct *t;
+
+	printk(KERN_INFO "Device for HDMI will be Initializad\n");
+
+	/* register this i2c device with the driver core */
+	dev = device_create(HDMI_class, NULL, MKDEV(HDMI_MAJOR, HDMI_MINOR), NULL, "HDMI");
+	if (IS_ERR(dev))
+	{
+		ret = PTR_ERR(dev);
+		goto exit;
+	}
+
+	memcpy(&gHDMIClient, client, sizeof(struct i2c_client));
+
+	mutex_init(&HDMI_lock);
+
+	/* HDMI device initialization */
+	ret = HDMI_dev_init(client);
+	if (ret < 0)
+	{
+		printk(KERN_ERR "HDMI_i2c_probe: failed to initialise EP932\n");
+		goto exit;
+	}
+
+	t = kthread_create(HDMI_Monitor_Thread, NULL, NULL);
+
+	if(IS_ERR(t))
+	{
+		printk(KERN_ERR "create HDMI thread failed\n");
+		return PTR_ERR(t);
+	}
+		
+	printk(KERN_INFO "Init HDMI device OK\n");
+
+	return 0;
+
+exit:
+	return ret;
+}
+
+static int HDMI_i2c_remove(struct i2c_client *client)
+{
+	printk(KERN_INFO "Remove HDMI device driver\n");
+
+	mutex_destroy(&HDMI_lock);
+
+	return 0;
+}
+
+static unsigned int 
+HDMI_poll(struct file *file, struct poll_table_struct *wait)
+{
+	unsigned int mask;
+
+	poll_wait(file, &HDMI_wait, wait);
+
+	if(HDMI_Hotplug_In == 1 || HDMI_Hotplug_Out == 1)
+		mask |= POLLIN | POLLRDNORM;
+	else
+		mask = POLLERR;
+
+	HDMI_Hotplug_In = 0;
+	HDMI_Hotplug_Out = 0;
+
+	return mask;
+}
+
+static int HDMI_open(struct inode *inode, struct file *file)
+{
+	file->private_data = &gHDMIClient;
+	return 0;
+}
+
+static int HDMI_release(struct inode *inode, struct file *file)
+{
+	file->private_data = NULL;
+	return 0;
+}
+
+static long HDMI_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+	int ret = 0;
+	unsigned int HDMI_HOTPLUG_TYPE = 0;
+	LCD_TIMING HDMI_TIMING_TYPE;
+	
+	printk(KERN_INFO "In HDMI_ioctl");
+
+	mutex_lock(&HDMI_lock);
+	switch(cmd)
+	{
+		case HDMI_CHECK_HOTPLUG:
+			if(HDMI_Hotplug_In == 0 && HDMI_Hotplug_Out == 0)
+				HDMI_HOTPLUG_TYPE = 0;	
+			if(HDMI_Hotplug_In == 1)
+				HDMI_HOTPLUG_TYPE = 1;
+			if(HDMI_Hotplug_Out == 1)
+				HDMI_HOTPLUG_TYPE = 2;
+
+			if(copy_to_user((void*)arg, (const void*)&HDMI_HOTPLUG_TYPE, 1))
+			{
+				printk(KERN_ERR "[HDMI_ioctl]: copy to user space error\n");
+				ret = -EFAULT;
+			}
+
+			HDMI_HOTPLUG_TYPE = 0;
+			break;
+
+		case HDMI_SET_NOTMAL_TIMING:
+			if(copy_from_user(&HDMI_TIMING_TYPE, (void*)arg, 1))
+			{
+				printk(KERN_ERR "[HDMI_ioctl]: copy from user space error\n");
+				ret = -EFAULT;
+			}
+
+			lcd_change_timing(HDMI_TIMING_TYPE);
+			msleep(200); 
+			hdmi_main(HDMI_TIMING_TYPE);
+
+			break;
+
+		case HDMI_SET_VIDEO_TIMING:
+			lcd_change_timing(LCD);
+			break;
+
+		default:
+			printk(KERN_ERR "[HDMI_ioctl]: unknown command type\n");
+			ret = -EFAULT;
+			break;
+	}
+
+	mutex_unlock(&HDMI_lock);
+
+	return ret;
+}
+
+static void  HDMI_Hotplug_Monitor(void)
+{
+	unsigned int ret;
+
+	ret = EP932_HotPlugMonitor();
+	printk("[HDMI_Hotplug_Monitor] ret is %d\r\n");
+
+	if(ret < 0)
+	{
+		printk(KERN_INFO "No HotPlug Detected\n");
+	}
+	else if(ret == 1)
+	{
+		printk(KERN_INFO "Detect HotPlug\n");
+//		wake_up(&HDMI_wait);
+		HDMI_Hotplug_In = 1;
+		HDMI_Hotplug_Out = 0;
+	}
+	else if(ret == 0)
+	{
+		printk(KERN_INFO "Without HotPlug\n");
+//		wake_up(&HDMI_wait);
+		HDMI_Hotplug_Out = 1;
+		HDMI_Hotplug_In = 0;
+	}
+}
+
+static irqreturn_t HDMI_Hotplug_irq(int irqno, void *dev_id)
+{
+	unsigned int ret;
+
+	printk(KERN_INFO "[HDMI_Hotplug_irq] HDMI hotplug detected\n");
+
+	spin_lock_irq(&lock);
+	HDMI_Hotplug_Monitor();
+	spin_unlock_irq(&lock);
+
+	return IRQ_HANDLED;
+}
+
+#if defined(CONFIG_PM)
+int HDMI_i2c_suspend(struct i2c_client *client, pm_message_t state)
+{
+	printk(KERN_INFO "Suspend EP932\n");
+
+	return 0;
+}
+		
+int HDMI_i2c_resume(struct i2c_client *client)
+{
+        printk(KERN_INFO "Resume EP932\n");
+
+	return 0;
+}		
+#endif
+
+static const struct file_operations HDMI_fops = {
+	.owner                  = THIS_MODULE,
+	.unlocked_ioctl = HDMI_ioctl,
+	.open                   = HDMI_open,
+	.poll		= HDMI_poll,
+	.release                        = HDMI_release,
+};
+
+static struct i2c_driver HDMI_i2c_driver = {
+	.driver = {
+		.name = "imap_HDMI-i2c",
+		.owner = THIS_MODULE,
+	},
+	.probe = HDMI_i2c_probe,
+	.remove = HDMI_i2c_remove,
+#if defined(CONFIG_PM) 
+	.suspend = HDMI_i2c_suspend,
+	.resume = HDMI_i2c_resume,
+#endif
+	.id_table = HDMI_i2c_id,
+};
+
+static int __init HDMI_probe(struct platform_device *pdev)
+{
+	struct i2c_board_info info;
+	struct i2c_adapter *adapter;
+	struct i2c_client *client;
+	int ret;
+
+	printk(KERN_INFO "HDMI Probe to add i2c driver for HDMI device\n");
+
+	ret = register_chrdev(HDMI_MAJOR, "imap-HDMI", &HDMI_fops);
+	if (ret)
+		goto out;
+
+	HDMI_class = class_create(THIS_MODULE, "HDMI_dev");
+	if (IS_ERR(HDMI_class))
+	{
+		printk(KERN_ERR "HDMI_init: fail to create HDMI device class\n");
+		ret = PTR_ERR(HDMI_class);
+		goto out_unreg_chrdev;
+	}
+
+	/* Add i2c_driver */
+	ret = i2c_add_driver(&HDMI_i2c_driver);
+	if(ret)
+	{
+		printk(KERN_ERR "HDMI_init: fail to register i2c driver\n");
+		goto out_unreg_class;
+	}
+
+	memset(&info, 0, sizeof(struct i2c_board_info));
+	info.addr = i2c_device_address;
+	strlcpy(info.type, "imap_HDMI", I2C_NAME_SIZE);
+
+	adapter = i2c_get_adapter(2);
+	if (!adapter)
+	{
+		printk(KERN_ERR "HDMI_init: can't get i2c adapter\n");
+		goto err_adapter;
+	}
+
+	client = i2c_new_device(adapter, &info);
+	i2c_put_adapter(adapter);
+	if (!client)
+	{
+		printk(KERN_ERR "HDMI_init: can't add i2c device at 0x%x\n", (unsigned int)info.addr);
+		goto err_adapter;
+	}
+
+	spin_lock_init(&lock);
+	init_waitqueue_head(&HDMI_wait);
+	init_completion(&Menu_Button);
+	
+	client->dev = pdev->dev;
+	
+	ret = request_irq(irq, HDMI_Hotplug_irq, IRQF_DISABLED,
+			dev_name(&pdev->dev), client);
+
+	if (ret != 0) {
+		dev_err(&pdev->dev, "cannot claim IRQ %d\n", irq);
+		goto out;
+	}
+
+	platform_set_drvdata(pdev, client);
+
+	printk(KERN_INFO "HDMI device add i2c driver OK!\n");
+
+	return 0;
+
+err_adapter:
+	i2c_del_driver(&HDMI_i2c_driver);
+out_unreg_class:
+	class_destroy(HDMI_class);
+out_unreg_chrdev:
+	unregister_chrdev(HDMI_MAJOR, "imap-HDMI");
+
+out:
+	printk(KERN_ERR "%s: Driver Initialisation failed\n", __FILE__);
+
+	return ret;
+}
+
+static int HDMI_remove(struct platform_device *pdev)
+{
+	struct i2c_client *client = (struct i2c_client *)platform_get_drvdata(pdev);
+
+	i2c_unregister_device(client);
+	i2c_del_driver(&HDMI_i2c_driver);
+	class_destroy(HDMI_class);
+	unregister_chrdev(HDMI_MAJOR, "imap-HDMI");
+
+	return 0;
+}
+
+
+static struct platform_driver HDMI_driver = {
+	.driver = {
+		.name = "imap-HDMI",
+		.owner = THIS_MODULE,
+	},
+	.probe = HDMI_probe,
+	.remove = HDMI_remove,
+};
+
+static int __init HDMI_init(void)
+{
+	return platform_driver_register(&HDMI_driver);
+}
+
+static void __exit HDMI_exit(void)
+{
+	platform_driver_unregister(&HDMI_driver);
+}
+
+module_init(HDMI_init);
+module_exit(HDMI_exit);
+
+MODULE_DESCRIPTION("Infotm HDMI driver");
+MODULE_AUTHOR("Alex Zhang, <alex.zhang@infotmic.com.cn>");
+MODULE_LICENSE("GPL");

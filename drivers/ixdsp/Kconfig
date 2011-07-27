@@ -1,0 +1,17 @@
+#
+# DSP subsystem configuration
+#
+
+menuconfig IX_DSP_CLASS
+	tristate "InfoTM DSP module support"
+	default n
+	depends on ARCH_IMAP
+	help
+	  InfoTM DSP module provide various good features.
+	  Such as GPS, say Y here to enable DSP subsystem.
+
+if IX_DSP_CLASS
+
+source "drivers/ixdsp/modules/Kconfig"
+
+endif # IX_DSP_CLASS

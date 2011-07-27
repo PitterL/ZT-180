@@ -1,0 +1,34 @@
+# sololz
+# never forget super mountain callage
+
+menuconfig IMAP_DECODE
+	bool "InfoTM IMAPX200 Decode Support"
+	select IMAP_MEMALLOC
+	default n
+	---help---
+	This is a driver for InfoTM IMAPX200 Decode, includes Video, JPEG and Post Processor
+
+config IMAP_DECODE_DEBUG
+	bool "print Decode Driver debug messages"
+	depends on IMAP_DECODE
+	default n
+
+config IMAP_DECODE_SIGNAL_MODE
+	bool "use signal to inform decode lib a frame finished"
+	depends on IMAP_DECODE
+	default n
+
+config IMAP_DECODE_POLL_MODE
+	bool "use poll system call to inform decode lib a frame finished"
+	depends on IMAP_DECODE
+	default y
+
+config IMAP_DEC_HW_PERFORMANCE
+	bool "get Decode Driver performance infomation"
+	depends on IMAP_DECODE
+	default n
+
+config IMAP_DECODE_IC_POWER_TRACE
+	bool "print 9170 decoder IC power trace message"
+	depends on IMAP_DECODE
+	default n

@@ -1,0 +1,13 @@
+#
+# GMAC-UNIV_ETHERNET CONFIGURATION
+#
+
+config GMAC_UNIV_ETHERNET
+	bool "IMAPX200 Gmac_Univ_Ethernet"
+	default n
+	---help---
+	  Support for GMAC-UNIV chipset
+	  
+	  To compile this driver as a module, choose M here. The module
+	  will be called GMAC-UNIV.
+

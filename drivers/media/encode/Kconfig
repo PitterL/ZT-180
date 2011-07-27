@@ -1,0 +1,24 @@
+# 
+# Kconfig of encode driver.
+#
+# InfoTM all rights reserved.
+#
+# Sololz <sololz.luo@gmail.com>.
+#
+
+menuconfig IMAP_ENCODE
+	bool "InfoTM IMAPX200 Encode Support"
+	select IMAP_MEMALLOC
+	default n
+	---help---
+	This is a driver for InfoTM IMAPX200 Encode, includes Video, JPEG
+
+config IMAP_ENCODE_DEBUG
+	bool "print Encode Driver debug messages"
+	depends on IMAP_ENCODE
+	default n
+
+config IMAP_ENCODE_IC_POWER_TRACE
+	bool "print 7280 IC power status trace message"
+	depends on IMAP_ENCODE
+	default n

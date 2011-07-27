@@ -1,0 +1,14 @@
+# Haixu Fu
+#
+config IMAP_CAMIF
+	bool "Infotm Imapx200 camif driver"
+	default n
+	---help---
+	This is the driver for iMapx200 camera interface,Say Y here If you
+	have a imapx200 product
+
+config IMAP_CAMIF_DEBUG
+	bool "Infotm Imapx200 debug"
+	depends on IMAP_CAMIF 
+	default n
+	

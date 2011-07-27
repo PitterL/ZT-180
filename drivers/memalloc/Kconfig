@@ -1,0 +1,130 @@
+#
+# Kconfig of memalloc.
+#
+# Sololz <sololz.luo@gmail.com>.
+#
+
+menuconfig IMAP_MEMALLOC
+	bool "Memory alloc support for multi-media"
+	default y
+	select IMAP_MPMEM_MANAGEMENT_SUPPORT
+	---help---
+	Considerring embedded system VPU and GPU need physical linear address buffer, 
+	this driver provide physical linear buffer allocation and free operations. 
+	And memory mode can be chosen in dynamic kmalloc or static reserved.
+
+if IMAP_MEMALLOC
+
+# Memalloc debug trace.
+config IMAP_MEMALLOC_DEBUG
+	bool "Print Memalloc debug messages"
+	depends on IMAP_MEMALLOC
+	default n
+config IMAP_MEMALLOC_MEMORY_USAGE_TRACE
+	bool "Trace memalloc driver memory usage"
+	depends on IMAP_MEMALLOC
+	default n
+
+# Deprecated.
+config IMAP_MEMALLOC_USE_KMALLOC
+	bool "Use kmalloc to do emergency process (NOT COMMENDDED)"
+	depends on IMAP_MEMALLOC
+	default n
+
+# Memory Pool power management.
+config IMAP_MMPOOL_MANAGEMENT
+	bool "Communicate with decode driver to process mpool power"
+	depends on IMAP_MEMALLOC
+	default y
+# Memory Pool trace.
+config IMAP_MMPOOL_TRACE_POWER
+	bool "Trace mmpool power status"
+	depends on IMAP_MMPOOL_MANAGEMENT 
+	default n
+
+# Main memory type.
+choice
+	depends on IMAP_MEMALLOC
+	prompt "Select reserve memory type"
+	default IMAP_MEMALLOC_SYSTEM_RESERVE
+config IMAP_MEMALLOC_MANUAL_RESERVE
+	bool "Manual reserve memory"
+config IMAP_MEMALLOC_SYSTEM_RESERVE
+	bool "System reserved memory"
+endchoice
+
+# For manual reserved memory.
+config IMAP_MEMALLOC_RSV_SIZE
+	int "Reserved memory by manual in MB size"
+	depends on IMAP_MEMALLOC_MANUAL_RESERVE
+	default "64"
+	---help---
+	This memory region is supposed to be tail part of physical memroy
+	range. So it's start and end address depend on total memory size 
+	and physical memory start address.
+config IMAP_MEMALLOC_TOTAL_SIZE
+	int "Total memory size in using"
+	depends on IMAP_MEMALLOC_MANUAL_RESERVE
+	default "256"
+	---help---
+	Set the total memory size on your IMAPX200 board.
+# For system reserved memory.
+config IMAP_MEMALLOC_SYSTEM_RESERVE_SIZE
+	int "Reserved memory by system in MB size"
+	depends on IMAP_MEMALLOC_SYSTEM_RESERVE
+	default "64"
+	---help---
+	This size might be changed if user get an memory mode promption and 
+	more memory mode chosen. Then at next system soft restart kernel will
+	check something to reserve more memroy for multi-media usage.
+config IMAP_MEMALLOC_MAX_RESERVE_SIZE
+	int "Max reserve memory in MB size"
+	depends on IMAP_MEMALLOC
+	default "96"
+	---help---
+	Max reserve memroy size set to limit memory usage. If more memory mode
+	is set, kernel will use this size to reserve more memory.
+
+# Driver register mode select.
+choice
+	depends on IMAP_MEMALLOC
+	prompt "Selete memalloc driver register mode"
+	default IMAP_MEMALLOC_DRIVER_REGISTER_MISC_MODE
+config IMAP_MEMALLOC_DRIVER_REGISTER_CLASS_MODE
+	bool "Use device_create() to create driver node"
+config IMAP_MEMALLOC_DRIVER_REGISTER_MISC_MODE
+	bool "Use misc driver model to register"
+endchoice
+
+# Shared memory complete support.
+config IMAP_SHARED_MEMORY_SUPPORT
+	bool "Shared memory support"
+	depends on IMAP_MEMALLOC
+	default y
+	---help---
+	Complete support for shared memory for Android system.
+
+# IMAPX Memory Pool memory management support.
+config IMAP_MPMEM_MANAGEMENT_SUPPORT
+	bool "Memory Pool memory management support"
+	depends on IMAP_MEMALLOC
+	default y
+	---help---
+	This part of Memory Pool management is for pretty fast appliction access, net etc.
+
+# A allocator for common use, it is designed to avoid external fragments.
+config MEMORY_ALLOCATOR_WITH_NO_EXT_FRAGMENT
+	bool "A common allocator with no external fragment"
+	default n
+	---help---
+	This allocator is designed to be an object that can be used in many situations.
+
+# Emulate of android pmem ioctl interfaces.
+config EMULATE_ANDROID_PMEM_INTERFACES
+	bool "Emulate android pmem ioctl interfaces"
+	default y
+	---help---
+	Memalloc has managed all Android physical memory access functions, but sometimes
+	we still need to emulate some pmem interfaces to avoid too much new code changes.
+
+endif	# IMAP_MEMALLOC

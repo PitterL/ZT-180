@@ -1,0 +1,141 @@
+#ifndef __IMAPX200_BATTERY_H__
+#define __IMAPX200_BATTERY_H__
+
+#include <mach/hardware.h>
+
+#define POWER_TYPE_MARK				2000
+#define MAX_USE_VOT					3130	// Voltage
+#define MIN_USE_VOT						2150	// Voltage
+#define POWER_VOT_HIGH					2700
+#define POWER_VOT_LOW					2600
+#define POWER_VOT_CRITICAL				2350
+#define CHARGING_FULL					3190
+
+#define BATT_EMPTY_VOL_VALUE  3400
+#define BATT_FULL_VOL_VALUE   4200
+
+#if defined(CONFIG_IMAPX_BATTERY_DEEP_DISCHARGE)
+#define BATT_DEEP_EMPTY_VOL_VALUE 3000 
+#define BATT_DEEP_ADC_STEP_VALUE 30
+#define BATT_DEEP_VOL_STEP_VALUE 400
+#endif
+
+#if defined(CONFIG_IMAPX_BATTERY_BAD_DISCHARGE)
+#if defined(CONFIG_IMAPX_BATTERY_DEEP_DISCHARGE)
+
+#if defined(CONFIG_BOARD_E3)
+#define BATT_BAD_DISCHARGE_ADC_COMPENSATION 2
+#endif
+
+#if defined(CONFIG_BOARD_G0)
+#define BATT_BAD_DISCHARGE_ADC_COMPENSATION 4
+#endif
+
+#else
+
+#if defined(CONFIG_BOARD_E3)
+#define BATT_BAD_DISCHARGE_ADC_COMPENSATION 4
+#endif
+
+#if defined(CONFIG_BOARD_G0)
+#define BATT_BAD_DISCHARGE_ADC_COMPENSATION 8
+#endif
+
+#endif
+#endif
+
+
+#if defined(CONFIG_BOARD_B0)
+#define BATT_FULL_ADC_VALUE     625
+#define BATT_EMPTY_ADC_VALUE    505
+#define GPIO_PIN_NUM IMAPX200_GPO(9)
+#endif
+
+#if (defined(CONFIG_BOARD_E3)||defined(CONFIG_BOARD_E4))
+#define BATT_FULL_ADC_VALUE     628
+#define BATT_EMPTY_ADC_VALUE    508
+
+#define GPIO_PIN_NUM IMAPX200_GPE(5)
+#endif
+
+#if defined(CONFIG_BOARD_E5)
+#define BATT_FULL_ADC_VALUE     310
+#define BATT_EMPTY_ADC_VALUE    254
+
+#define GPIO_PIN_NUM IMAPX200_GPE(5)
+#endif
+
+
+#if defined(CONFIG_BOARD_F0)
+#define BATT_FULL_ADC_VALUE     628
+#define BATT_EMPTY_ADC_VALUE    508
+
+#define GPIO_PIN_NUM IMAPX200_GPE(5)
+#endif
+
+#if defined(CONFIG_BOARD_G0)||defined(CONFIG_BOARD_G0_3G)
+/*#define BATT_FULL_ADC_VALUE     606
+#define BATT_EMPTY_ADC_VALUE    495*/
+#define BATT_FULL_ADC_VALUE     625
+#define BATT_EMPTY_ADC_VALUE    507
+
+#define GPIO_PIN_NUM IMAPX200_GPE(5)
+#endif
+
+#if defined(CONFIG_BOARD_H0)
+#define BATT_FULL_ADC_VALUE     628
+#define BATT_EMPTY_ADC_VALUE    508
+
+#define GPIO_PIN_NUM IMAPX200_GPE(5)
+#endif
+
+#if defined(CONFIG_BOARD_I0)
+#define BATT_FULL_ADC_VALUE     628
+#define BATT_EMPTY_ADC_VALUE    508
+
+#define GPIO_PIN_NUM IMAPX200_GPE(5)
+#endif
+
+#if defined(CONFIG_BOARD_J0)
+#define BATT_FULL_ADC_VALUE     628
+#define BATT_EMPTY_ADC_VALUE    508
+
+#define GPIO_PIN_NUM IMAPX200_GPE(5)
+#endif
+
+#if defined(CONFIG_BOARD_K0)
+/*
+#define BATT_FULL_ADC_VALUE     618
+#define BATT_EMPTY_ADC_VALUE    498*/
+#define BATT_FULL_ADC_VALUE     628
+#define BATT_EMPTY_ADC_VALUE    508
+
+
+#define GPIO_PIN_NUM IMAPX200_GPE(5)
+#endif
+
+#if 0
+#define BAT_STAT_PRESENT 0x01
+#define BAT_STAT_FULL   0x02
+#define BAT_STAT_LOW   0x04
+#define BAT_STAT_DESTROY 0x08
+#define BAT_STAT_AC   0x10
+#define BAT_STAT_CHARGING 0x20
+#define BAT_STAT_DISCHARGING 0x40
+
+#define iBAT_STAT_CHARGING 0x1
+#define iBAT_STAT_FULL   0x04
+#define iBAT_STAT_NOTCHARGING 0x3
+
+#define BAT_ERR_INFOFAIL 0x02
+#define BAT_ERR_OVERVOLTAGE 0x04
+#define BAT_ERR_OVERTEMP 0x05
+#define BAT_ERR_GAUGESTOP 0x06
+#define BAT_ERR_OUT_OF_CONTROL 0x07
+#define BAT_ERR_ID_FAIL   0x09
+#define BAT_ERR_ACR_FAIL 0x10
+
+#define BAT_ADDR_MFR_TYPE 0x5F
+#endif
+
+#endif /* __IMAPX200_BATTERY_H__ */
