@@ -1,3 +1,13 @@
+And the compile tools is at ftp://zenithink.com/dyliao/. 
+   All board version is include and you can edit 
+
+   1 /etc/bash.bashrc 
+Add export PATH=$PATH:/<gcc toolchain_xxx>/bin  to last line
+   2 edit <kernel>/maketest.sh to your board version and run it.
+
+Good luck
+
+
 	Linux kernel release 2.6.xx <http://kernel.org/>
 
 These are the release notes for Linux version 2.6.  Read them carefully,
