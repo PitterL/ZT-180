@@ -8,6 +8,11 @@ Add export PATH=$PATH:/<gcc toolchain_xxx>/bin  to last line
 Good luck
 
 
+20110819:
+1 add audio es8388 support( better than wm8988 )
+2 add usb host/slave driver ( not include 3G part)
+
+
 	Linux kernel release 2.6.xx <http://kernel.org/>
 
 These are the release notes for Linux version 2.6.  Read them carefully,
