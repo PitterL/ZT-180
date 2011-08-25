@@ -537,7 +537,42 @@ static void __exit aud_proc_exit(void)
 }
 #endif//CONFIG_AUDIO_CODEC_PROCFS
 
+static int wm8987_i2c_register(void)
+{
+    struct i2c_board_info info;
+    struct i2c_adapter *adapter;
+    struct i2c_client *client;
 
+    printk("%s()\n", __func__);
+
+    memset(&info, 0, sizeof(struct i2c_board_info));
+
+    // The Bit 0 value of I2C subaddress is AD0 pin value.
+    info.addr = 0x1a;
+	printk("###wm8987_i2c_register info.addr = 0x%x\n", info.addr);
+    strlcpy(info.type, "wm8987", I2C_NAME_SIZE);
+
+    adapter = i2c_get_adapter(1);
+    if (!adapter) 
+    {
+        printk(KERN_ERR "can't get i2c adapter \n");
+        return -ENODEV;
+    }
+    printk("adapter 0x%x\n", adapter);
+
+    client = i2c_new_device(adapter, &info);
+    printk("client 0x%x\n", client);
+    i2c_put_adapter(adapter);
+    if (!client) 
+    {
+        printk(KERN_ERR "can't add i2c device at 0x%x\n", (unsigned int)info.addr);
+        return -ENODEV;
+    }
+    return 0;
+}
+
+
+//extern int wm8987_device_exist;
 static int __init imapx200_init(void)
 {
 	int ret;
@@ -550,6 +585,16 @@ static int __init imapx200_init(void)
 	
 #endif
 	printk(KERN_INFO "wm8988!\n");
+
+    /*
+    ret = wm8987_i2c_register();
+
+    if(!wm8987_device_exist){
+        printk("wm8987 device not exist\n");
+        return 0;
+    }
+    */
+
 	imapx200_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!imapx200_snd_device)
 		return -ENOMEM;

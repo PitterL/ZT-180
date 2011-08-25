@@ -47,6 +47,8 @@ snd-soc-wm-hubs-objs := wm_hubs.o
 
 snd-soc-wm8987-objs := wm8987.o
 obj-$(CONFIG_SND_SOC_WM8987)	+= snd-soc-wm8987.o
+snd-soc-es8388-objs := es8388.o
+obj-$(CONFIG_SND_SOC_ES8388)	+= snd-soc-es8388.o
 obj-$(CONFIG_SND_SOC_AC97_CODEC)	+= snd-soc-ac97.o
 obj-$(CONFIG_SND_SOC_AD1836)	+= snd-soc-ad1836.o
 obj-$(CONFIG_SND_SOC_AD1938)	+= snd-soc-ad1938.o

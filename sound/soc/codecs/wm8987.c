@@ -37,8 +37,11 @@
 
 #define AUDIO_NAME "WM8987"
 #define WM8987_VERSION "v0.12"
-unsigned int system_mute;
-unsigned int system_mute_state;
+
+//int wm8987_device_exist = 0;
+
+static unsigned int system_mute;
+static unsigned int system_mute_state;
 /*
  * Debug
  */
@@ -889,7 +892,9 @@ static int wm8987_init(struct snd_soc_device *socdev)
 {
 	struct snd_soc_codec *codec = socdev->card->codec;
 	int reg, ret = 0;
+    int retry;
 
+    printk("wm8987_init\n");
 
 	codec->name = "WM8987";
 	codec->owner = THIS_MODULE;
@@ -922,7 +927,16 @@ static int wm8987_init(struct snd_soc_device *socdev)
 #endif
 #endif//CONFIG_HHTECH_MINIPMP
 
-	wm8987_reset(codec);
+    for(retry =0; retry < 3; retry++){
+	    ret = wm8987_reset(codec);
+        if(ret == 0)
+            break;
+	}
+
+    if(ret){
+        printk("wm8987 not exist\n");
+        goto pcm_err;
+    }
 
 	/* register pcms */
 	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
@@ -1002,6 +1016,8 @@ static int wm8987_init(struct snd_soc_device *socdev)
 
     schedule_delayed_work(&codec->delayed_work_hp_irq, msecs_to_jiffies(12000));
 
+    //wm8987_device_exist = 1;
+
 	return ret;
 
 card_err:
@@ -1030,7 +1046,7 @@ static int wm8987_i2c_probe(struct i2c_client *i2c,
 
 	codec->control_data = i2c;
 	
-	
+	printk("wm8987_i2c_probe\n");
 
 	ret = wm8987_init(socdev);
 	if (ret < 0)
@@ -1156,6 +1172,8 @@ static int wm8987_probe(struct platform_device *pdev)
 	int ret = 0;
 //	printk(KERN_INFO "i2c->address is %d\n",setup->i2c_address);
 //	printk(KERN_INFO "i2c->bus is %d\n",setup->i2c_bus);
+    printk("wm8987_probe\n");
+
 	info("Audio Codec Driver %s", WM8987_VERSION);
 	codec = kzalloc(sizeof(struct snd_soc_codec), GFP_KERNEL);
 	if (codec == NULL)
@@ -1252,6 +1270,30 @@ struct snd_soc_codec_device soc_codec_dev_wm8987 = {
 };
 
 EXPORT_SYMBOL_GPL(soc_codec_dev_wm8987);
+
+#if 0
+static int __init wm8987_modinit(void)
+{
+	int ret;
+
+    printk("%s() \n", __func__);
+	ret = i2c_add_driver(&wm8987_i2c_driver);
+	if (ret != 0) {
+		printk(KERN_ERR "Failed to register WM8987 I2C driver: %d\n",
+		       ret);
+	}
+
+	return 0;
+}
+module_init(wm8987_modinit);
+
+static void __exit wm8987_exit(void)
+{
+    printk("%s() \n", __func__);
+	i2c_del_driver(&wm8987_i2c_driver);
+}
+module_exit(wm8987_exit);
+#endif
 
 MODULE_DESCRIPTION("ASoC WM8987 driver");
 MODULE_AUTHOR("Liam Girdwood");

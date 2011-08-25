@@ -97,11 +97,25 @@ export MK_CPIO_SRC=src
 export MK_CONFIG=ZT180_E4_defconfig
 ./makeone.sh
 
+# E4 ES8388
+export MK_VERSION=E4_ES8388
+export MK_CPIO_NAME=imap.cpio
+export MK_CPIO_SRC=src
+export MK_CONFIG=ZT180_E4_ES8388_defconfig
+./makeone.sh
+
 # E5
 export MK_VERSION=E5
 export MK_CPIO_NAME=imap.cpio
 export MK_CPIO_SRC=src
 export MK_CONFIG=ZT180_E5_defconfig
+./makeone.sh
+
+# E5 ES8388
+export MK_VERSION=E5_ES8388
+export MK_CPIO_NAME=imap.cpio
+export MK_CPIO_SRC=src
+export MK_CONFIG=ZT180_E5_ES8388_defconfig
 ./makeone.sh
 
 # F0
@@ -167,6 +181,13 @@ export MK_CPIO_SRC=src
 export MK_CONFIG=ZT180_G2_defconfig
 ./makeone.sh
 
+# G2 ES8388
+export MK_VERSION=G2_ES8388
+export MK_CPIO_NAME=imap.cpio
+export MK_CPIO_SRC=src
+export MK_CONFIG=ZT180_G2_ES8388_defconfig
+./makeone.sh
+
 # G2 batt35
 export MK_VERSION=G2_batt35
 export MK_CPIO_NAME=imap.cpio
@@ -179,6 +200,13 @@ export MK_VERSION=G2_nohdmi_nocamara
 export MK_CPIO_NAME=imap.cpio
 export MK_CPIO_SRC=src
 export MK_CONFIG=ZT180_G2_nohdmi_nocamera_defconfig
+./makeone.sh
+
+# G2 nohdmi no camara ES8388
+export MK_VERSION=G2_nohdmi_nocamara_ES8388
+export MK_CPIO_NAME=imap.cpio
+export MK_CPIO_SRC=src
+export MK_CONFIG=ZT180_G2_nohdmi_nocamera_ES8388_defconfig
 ./makeone.sh
 
 # G2 nohdmi no camara batt35

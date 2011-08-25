@@ -36,7 +36,16 @@ config SND_IMAPX200_SOC_IMAPX200_WM8987
 	help
 	  Say Y if you want to add support for SoC audio on imapx200 
 	  or imapx200 with the WM8987.
- 
+
+config SND_IMAPX200_SOC_IMAPX200_ES8388
+	tristate "SoC I2S Audio support for IMAPX200 - ES8388"
+	depends on SND_IMAPX_SOC && (MACH_IMAPX200)
+	select SND_IMAPX200_SOC_I2S
+	select SND_SOC_ES8388
+	help
+	  Say Y if you want to add support for SoC audio on imapx200 
+	  or imapx200 with the ES8388.
+
 config SND_IMAPX200_SOC_I2S
 	tristate
 

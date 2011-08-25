@@ -5,6 +5,8 @@ And the compile tools is at ftp://zenithink.com/dyliao/.
 Add export PATH=$PATH:/<gcc toolchain_xxx>/bin  to last line
    2 edit <kernel>/maketest.sh to your board version and run it.
 
+support site: www.slatedroid.com
+
 Good luck
 
 
